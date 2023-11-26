@@ -1,0 +1,14 @@
+[package]
+name = "template-nest"
+version = "0.1.0"
+edition = "2021"
+authors = ["Tom Gracey", "Andinus <andinus@nand.sh>"]
+description = "TemplateNest is a template engine for Rust, designed to process nested templates quickly and efficiently."
+repository = "https://github.com/andinus/TemplateNest-rs"
+license = "ISC"
+rust-version = "1.65"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+regex = "1.10.2"

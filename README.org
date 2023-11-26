@@ -1,0 +1,24 @@
+#+title: TemplateNest
+#+subtitle: manipulate a generic template structure
+
+* Documentation
+
+~TemplateNest~ is a template engine module for Rust, designed to process nested
+templates quickly and efficiently.
+
+For more details on ~Template::Nest~ (Perl) visit:
+https://metacpan.org/pod/Template::Nest
+
+* News
+
+** v0.1.0 - 2023-11-26
+
++ Initial Release.
+
+* See Also
+
+- Template::Nest [Perl5] https://metacpan.org/pod/Template::Nest
+- template-nest [Python] https://pypi.org/project/template-nest/
+- Template::Nest [Raku] https://raku.land/cpan:TOMGRACEY/Template::Nest
+- Template::Nest::XS [Raku] https://raku.land/zef:jaffa4/Template::Nest::XS
+- Template::Nest::Fast [Raku] https://raku.land/zef:andinus/Template::Nest::Fast
