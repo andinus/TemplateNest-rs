@@ -36,18 +36,16 @@
 //! use template_nest::{filling, Filling};
 //! use std::collections::HashMap;
 //!
-//! fn main() {
-//!     let nest = TemplateNest::new("templates").unwrap();
-//!     let simple_page = filling!(
-//!         "TEMPLATE": "00-simple-page",
-//!         "variable": "Simple Variable",
-//!         "simple_component":  {
-//!             "TEMPLATE":"01-simple-component",
-//!             "variable": "Simple Variable in Simple Component"
-//!         }
-//!     );
-//!     println!("{}", nest.render(&simple_page).unwrap());
-//! }
+//! let nest = TemplateNest::new("templates").unwrap();
+//! let simple_page = filling!(
+//!     "TEMPLATE": "00-simple-page",
+//!     "variable": "Simple Variable",
+//!     "simple_component":  {
+//!         "TEMPLATE":"01-simple-component",
+//!         "variable": "Simple Variable in Simple Component"
+//!     }
+//! );
+//! println!("{}", nest.render(&simple_page).unwrap());
 //! ```
 
 use std::collections::HashMap;
@@ -56,6 +54,15 @@ use std::path::PathBuf;
 
 use regex::Regex;
 
+/// Represents a variable in a template hash, can be a string, another template
+/// hash or an array of template hash.
+pub enum Filling {
+    Text(String),
+    List(Vec<Filling>),
+    Template(HashMap<String, Filling>),
+}
+
+/// Renders a template hash to produce an output.
 pub struct TemplateNest<'a> {
     /// Delimiters used in the template. It is a tuple of two strings,
     /// representing the start and end delimiters.
@@ -88,14 +95,6 @@ struct TemplateFileVariable {
     /// the delimeters.
     start_position: usize,
     end_position: usize,
-}
-
-/// Represents a variable in a template hash, can be a string, another template
-/// hash or an array of template hash.
-pub enum Filling {
-    Text(String),
-    List(Vec<Filling>),
-    Template(HashMap<String, Filling>),
 }
 
 impl TemplateNest<'_> {

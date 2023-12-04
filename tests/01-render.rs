@@ -1,6 +1,6 @@
+use std::collections::HashMap;
 use template_nest::TemplateNest;
 use template_nest::{filling, filling_list, Filling};
-use std::collections::HashMap;
 
 #[test]
 fn render_simple_page() -> Result<(), String> {
