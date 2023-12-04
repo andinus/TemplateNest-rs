@@ -66,16 +66,16 @@ pub enum Filling {
 pub struct TemplateNest<'a> {
     /// Delimiters used in the template. It is a tuple of two strings,
     /// representing the start and end delimiters.
-    delimiters: (&'a str, &'a str),
+    pub delimiters: (&'a str, &'a str),
 
     /// Name label used to identify the template to be used.
-    label: &'a str,
+    pub label: &'a str,
 
     /// Template extension, appended on label to identify the template.
-    extension: &'a str,
+    pub extension: &'a str,
 
     /// Directory where templates are located.
-    directory: PathBuf,
+    pub directory: PathBuf,
 }
 
 /// Represents an indexed template file.
@@ -97,6 +97,17 @@ struct TemplateFileVariable {
     end_position: usize,
 }
 
+impl Default for TemplateNest<'_> {
+    fn default() -> Self {
+        TemplateNest {
+            directory: "templates".into(),
+            delimiters: ("<!--%", "%-->"),
+            label: "TEMPLATE",
+            extension: "html",
+        }
+    }
+}
+
 impl TemplateNest<'_> {
     /// Creates a new instance of TemplateNest with the specified directory.
     pub fn new(directory_str: &str) -> Result<Self, String> {
@@ -105,15 +116,9 @@ impl TemplateNest<'_> {
             return Err(format!("Expected directory at: {}", directory_str));
         }
 
-        let label = &"TEMPLATE";
-        let extension = &"html";
-        let delimiters = ("<!--%", "%-->");
-
         Ok(Self {
             directory,
-            delimiters,
-            label,
-            extension,
+            ..Default::default()
         })
     }
 
@@ -168,9 +173,10 @@ impl TemplateNest<'_> {
                 Ok(render)
             }
             Filling::Template(template_hash) => {
-                let template_label: &Filling = template_hash
-                    .get(self.label)
-                    .ok_or("Expected name label in template hash")?;
+                let template_label: &Filling = template_hash.get(self.label).ok_or(format!(
+                    "Expected name label in template hash: `{}`",
+                    &self.label
+                ))?;
 
                 // template_name must contain a string, it cannot be a template hash or
                 // a vec of template hash.
