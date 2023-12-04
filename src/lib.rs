@@ -76,6 +76,14 @@ pub struct TemplateNest<'a> {
 
     /// Directory where templates are located.
     pub directory: PathBuf,
+
+    /// Prepends & Appends a string to every template which is helpful in
+    /// identifying which template the output text came from.
+    pub show_labels: bool,
+
+    /// Used in conjuction with show_labels. If the template is HTML then use
+    /// '<!--', '-->'.
+    pub comment_delimiters: (&'a str, &'a str),
 }
 
 /// Represents an indexed template file.
@@ -100,10 +108,12 @@ struct TemplateFileVariable {
 impl Default for TemplateNest<'_> {
     fn default() -> Self {
         TemplateNest {
-            directory: "templates".into(),
-            delimiters: ("<!--%", "%-->"),
             label: "TEMPLATE",
             extension: "html",
+            show_labels: false,
+            directory: "templates".into(),
+            delimiters: ("<!--%", "%-->"),
+            comment_delimiters: ("<!--", "-->"),
         }
     }
 }
@@ -192,6 +202,24 @@ impl TemplateNest<'_> {
                             render.push_str(&self.render(value)?);
                         }
                         rendered.replace_range(var.start_position..var.end_position, &render);
+                    }
+
+                    // Add lables to the rendered string if show_labels is true.
+                    if self.show_labels {
+                        rendered.replace_range(
+                            0..0,
+                            &format!(
+                                "{} BEGIN {} {}\n",
+                                self.comment_delimiters.0, name, self.comment_delimiters.1
+                            ),
+                        );
+                        rendered.replace_range(
+                            rendered.len()..rendered.len(),
+                            &format!(
+                                "{} END {} {}\n",
+                                self.comment_delimiters.0, name, self.comment_delimiters.1
+                            ),
+                        );
                     }
 
                     // Trim trailing without cloning `rendered'.
