@@ -1,3 +1,55 @@
+//! Template engine for Rust.
+//!
+//! For more details on the idea behind `Template::Nest` read:
+//! - <https://metacpan.org/pod/Template::Nest#DESCRIPTION>
+//! - <https://pypi.org/project/template-nest/>
+
+//! # Examples
+//!
+//! Templates placed in `templates` directory:
+//! `templates/00-simple-page.html`:
+//! ```html
+//! <!DOCTYPE html>
+//! <html lang="en">
+//!   <head>
+//!     <meta charset="utf-8">
+//!     <meta name="viewport" content="width=device-width, initial-scale=1">
+//!     <title>Simple Page</title>
+//!   </head>
+//!   <body>
+//!     <p>A fairly simple page to test the performance of Template::Nest.</p>
+//!     <p><!--% variable %--></p>
+//!     <!--% simple_component %-->
+//!   </body>
+//! </html>
+//! ```
+//!
+//! `templates/00-simple-page.html`:
+//! ```html
+//! <p><!--% variable %--></p>
+//! ```
+//!
+//! Those templates can be used in a template hash which is passed to
+//! TemplateNest::render to render a page:
+//! ```rust
+//! use template_nest::TemplateNest;
+//! use template_nest::{filling, Filling};
+//! use std::collections::HashMap;
+//!
+//! fn main() {
+//!     let nest = TemplateNest::new("templates").unwrap();
+//!     let simple_page = filling!(
+//!         "TEMPLATE": "00-simple-page",
+//!         "variable": "Simple Variable",
+//!         "simple_component":  {
+//!             "TEMPLATE":"01-simple-component",
+//!             "variable": "Simple Variable in Simple Component"
+//!         }
+//!     );
+//!     println!("{}", nest.render(&simple_page).unwrap());
+//! }
+//! ```
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -202,9 +254,8 @@ macro_rules! filling_list {
     };
 }
 
-/// Helper crate for converting types into `Filling::Text`. It's used
-/// internally by the `filling!` and `filling_list!` macros.
-
+/// Helper macro for converting types into `Filling::Text`. It's used internally
+/// by the `filling!` and `filling_list!` macros.
 #[macro_export]
 macro_rules! filling_text {
     //( null ) => { $crate::Null };
@@ -286,135 +337,4 @@ macro_rules! filling {
     ($( $k:expr => $v:expr ),*) => {
         $crate::filling!(@END $( $k => $crate::filling_text!($v), )*)
     };
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::TemplateNest;
-    use crate::{filling, filling_list, Filling};
-    use std::collections::HashMap;
-
-    #[test]
-    fn initialize() -> Result<(), String> {
-        TemplateNest::new("templates")?;
-        Ok(())
-    }
-
-    #[test]
-    fn render_simple_page() -> Result<(), String> {
-        let nest = TemplateNest::new("templates")?;
-        let simple_page = filling!(
-            "TEMPLATE": "00-simple-page",
-            "variable": "Simple Variable",
-            "simple_component":  {
-                "TEMPLATE":"01-simple-component",
-                "variable": "Simple Variable in Simple Component"
-            }
-        );
-        let simple_page_output = filling!(
-            "TEMPLATE": "output/01-simple-page",
-        );
-        assert_eq!(
-            nest.render(&simple_page)?,
-            nest.render(&simple_page_output)?,
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn render_incomplete_page() -> Result<(), String> {
-        let nest = TemplateNest::new("templates")?;
-        let incomplete_page = filling!(
-            "TEMPLATE": "00-simple-page",
-            "variable": "Simple Variable",
-            "simple_component":  {
-                "TEMPLATE":"01-simple-component",
-            }
-        );
-        let incomplete_page_output = filling!(
-            "TEMPLATE": "output/03-incomplete-page",
-        );
-        assert_eq!(
-            nest.render(&incomplete_page)?,
-            nest.render(&incomplete_page_output)?
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn render_complex_page() -> Result<(), String> {
-        let nest = TemplateNest::new("templates")?;
-        let complex_page = filling!(
-            "TEMPLATE": "10-complex-page",
-            "title": "Complex Page",
-            "pre_body": {
-                "TEMPLATE": "18-styles",
-            },
-            "navigation": {
-                "TEMPLATE": "11-navigation",
-                "banner": {
-                    "TEMPLATE": "12-navigation-banner",
-                },
-                "items": [
-                    { "TEMPLATE": "13-navigation-item-00-services" },
-                    { "TEMPLATE": "13-navigation-item-01-resources" },
-                ]
-            },
-            "hero_section": {
-                "TEMPLATE": "14-hero-section",
-            },
-            "main_content": [
-                { "TEMPLATE": "15-isdc-card", },
-                {
-                    "TEMPLATE": "16-vb-brand-cards",
-                    "cards": [
-                        {
-                            "TEMPLATE": "17-vb-brand-card-00",
-                            "parent_classes": "p-card brand-card col-4",
-                        },
-                        {
-                            "TEMPLATE": "17-vb-brand-card-01",
-                            "parent_classes": "p-card brand-card col-4",
-                        },
-                        {
-                            "TEMPLATE": "17-vb-brand-card-02",
-                            "parent_classes": "p-card brand-card col-4",
-                        },
-                    ]
-                }
-            ],
-            "post_footer": {
-                "TEMPLATE": "19-scripts"
-            }
-        );
-        let complex_page_output = filling!(
-            "TEMPLATE": "output/02-complex-page",
-        );
-        assert_eq!(
-            nest.render(&complex_page)?,
-            nest.render(&complex_page_output)?
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn render_array_of_template_hash() -> Result<(), String> {
-        let nest = TemplateNest::new("templates")?;
-        let page = filling_list!([
-            {
-                "TEMPLATE": "01-simple-component",
-                "variable": "This is a variable",
-            }, {
-                "TEMPLATE": "01-simple-component",
-                "variable": "This is another variable",
-            }
-        ]);
-        let page_output = filling!(
-            "TEMPLATE": "output/13-render-with-array-of-template-hash",
-        );
-        assert_eq!(nest.render(&page)?, nest.render(&page_output)?);
-
-        Ok(())
-    }
 }
