@@ -1,9 +1,8 @@
 use std::collections::HashMap;
-use template_nest::TemplateNest;
-use template_nest::{filling, Filling};
+use template_nest::{filling, Filling, TemplateNest, TemplateNestError};
 
 #[test]
-fn render_simple_page_with_fixed_indent() -> Result<(), String> {
+fn render_simple_page_with_fixed_indent() -> Result<(), TemplateNestError> {
     let nest = TemplateNest {
         directory: "templates".into(),
         fixed_indent: true,
@@ -25,7 +24,7 @@ fn render_simple_page_with_fixed_indent() -> Result<(), String> {
 }
 
 #[test]
-fn render_complex_page_with_fixed_indent() -> Result<(), String> {
+fn render_complex_page_with_fixed_indent() -> Result<(), TemplateNestError> {
     let nest = TemplateNest {
         directory: "templates".into(),
         fixed_indent: true,

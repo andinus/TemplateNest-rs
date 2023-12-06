@@ -1,9 +1,8 @@
 use std::collections::HashMap;
-use template_nest::TemplateNest;
-use template_nest::{filling, Filling};
+use template_nest::{filling, Filling, TemplateNest, TemplateNestError};
 
 #[test]
-fn render_with_show_labels() -> Result<(), String> {
+fn render_with_show_labels() -> Result<(), TemplateNestError> {
     let nest = TemplateNest {
         directory: "templates".into(),
         show_labels: true,
@@ -32,7 +31,7 @@ fn render_with_show_labels() -> Result<(), String> {
 }
 
 #[test]
-fn render_with_show_labels_alt_delimiters() -> Result<(), String> {
+fn render_with_show_labels_alt_delimiters() -> Result<(), TemplateNestError> {
     let nest = TemplateNest {
         directory: "templates".into(),
         show_labels: true,

@@ -1,9 +1,8 @@
 use std::collections::HashMap;
-use template_nest::TemplateNest;
-use template_nest::{filling, filling_list, Filling};
+use template_nest::{filling, filling_list, Filling, TemplateNest, TemplateNestError};
 
 #[test]
-fn render_simple_page() -> Result<(), String> {
+fn render_simple_page() -> Result<(), TemplateNestError> {
     let nest = TemplateNest::new("templates")?;
     let simple_page = filling!(
         "TEMPLATE": "00-simple-page",
@@ -24,7 +23,7 @@ fn render_simple_page() -> Result<(), String> {
 }
 
 #[test]
-fn render_incomplete_page() -> Result<(), String> {
+fn render_incomplete_page() -> Result<(), TemplateNestError> {
     let nest = TemplateNest::new("templates")?;
     let incomplete_page = filling!(
         "TEMPLATE": "00-simple-page",
@@ -44,7 +43,7 @@ fn render_incomplete_page() -> Result<(), String> {
 }
 
 #[test]
-fn render_complex_page() -> Result<(), String> {
+fn render_complex_page() -> Result<(), TemplateNestError> {
     let nest = TemplateNest::new("templates")?;
     let complex_page = filling!(
         "TEMPLATE": "10-complex-page",
@@ -101,7 +100,7 @@ fn render_complex_page() -> Result<(), String> {
 }
 
 #[test]
-fn render_array_of_template_hash() -> Result<(), String> {
+fn render_array_of_template_hash() -> Result<(), TemplateNestError> {
     let nest = TemplateNest::new("templates")?;
     let page = filling_list!([
         {

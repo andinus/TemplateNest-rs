@@ -1,7 +1,7 @@
-use template_nest::TemplateNest;
+use template_nest::{TemplateNest, TemplateNestError};
 
 #[test]
-fn initialize() -> Result<(), String> {
+fn initialize() -> Result<(), TemplateNestError> {
     TemplateNest::new("templates")?;
     Ok(())
 }

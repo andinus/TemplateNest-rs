@@ -50,9 +50,11 @@
 
 use std::collections::HashMap;
 use std::fs;
+use std::io;
 use std::path::PathBuf;
 
 use regex::Regex;
+use thiserror::Error;
 
 /// Represents a variable in a template hash, can be a string, another template
 /// hash or an array of template hash.
@@ -60,6 +62,24 @@ pub enum Filling {
     Text(String),
     List(Vec<Filling>),
     Template(HashMap<String, Filling>),
+}
+
+#[derive(Error, Debug)]
+pub enum TemplateNestError {
+    #[error("expected template directory at `{0}`")]
+    TemplateDirNotFound(String),
+
+    #[error("expected template file at `{0}`")]
+    TemplateFileNotFound(String),
+
+    #[error("error reading: `{0}`")]
+    TemplateFileReadError(#[from] io::Error),
+
+    #[error("encountered hash with no name label (name label: `{0}`)")]
+    NoNameLabel(String),
+
+    #[error("encountered hash with invalid name label type (name label: `{0}`)")]
+    InvalidNameLabel(String),
 }
 
 /// Renders a template hash to produce an output.
@@ -127,10 +147,12 @@ impl Default for TemplateNest<'_> {
 
 impl TemplateNest<'_> {
     /// Creates a new instance of TemplateNest with the specified directory.
-    pub fn new(directory_str: &str) -> Result<Self, String> {
+    pub fn new(directory_str: &str) -> Result<Self, TemplateNestError> {
         let directory = PathBuf::from(directory_str);
         if !directory.is_dir() {
-            return Err(format!("Expected directory at: {}", directory_str));
+            return Err(TemplateNestError::TemplateDirNotFound(
+                directory_str.to_string(),
+            ));
         }
 
         Ok(Self {
@@ -142,18 +164,20 @@ impl TemplateNest<'_> {
     /// Given a template name, returns the "index" of the template file, it
     /// contains the contents of the file and all the variables that are
     /// present.
-    fn index(&self, template_name: &str) -> Result<TemplateFileIndex, String> {
+    fn index(&self, template_name: &str) -> Result<TemplateFileIndex, TemplateNestError> {
         let file = self
             .directory
             .join(format!("{}.{}", template_name, self.extension));
         if !file.is_file() {
-            return Err(format!("Expected file at: {}", file.display()));
+            return Err(TemplateNestError::TemplateFileNotFound(
+                file.display().to_string(),
+            ));
         }
 
         let contents = match fs::read_to_string(&file) {
             Ok(file_contents) => file_contents,
             Err(err) => {
-                return Err(format!("Error reading file: {}", err));
+                return Err(TemplateNestError::TemplateFileReadError(err));
             }
         };
 
@@ -172,7 +196,7 @@ impl TemplateNest<'_> {
                 true => {
                     let newline_position = &contents[..start_position].rfind('\n').unwrap_or(0);
                     start_position - newline_position - 1
-                },
+                }
                 false => 0,
             };
 
@@ -193,7 +217,7 @@ impl TemplateNest<'_> {
 
     /// Given a TemplateHash, it parses the TemplateHash and renders a String
     /// output.
-    pub fn render(&self, filling: &Filling) -> Result<String, String> {
+    pub fn render(&self, filling: &Filling) -> Result<String, TemplateNestError> {
         match filling {
             Filling::Text(text) => Ok(text.to_string()),
             Filling::List(list) => {
@@ -204,10 +228,9 @@ impl TemplateNest<'_> {
                 Ok(render)
             }
             Filling::Template(template_hash) => {
-                let template_label: &Filling = template_hash.get(self.label).ok_or(format!(
-                    "Expected name label in template hash: `{}`",
-                    &self.label
-                ))?;
+                let template_label: &Filling = template_hash
+                    .get(self.label)
+                    .ok_or(TemplateNestError::NoNameLabel(self.label.to_string()))?;
 
                 // template_name must contain a string, it cannot be a template hash or
                 // a vec of template hash.
@@ -262,7 +285,7 @@ impl TemplateNest<'_> {
 
                     Ok(rendered)
                 } else {
-                    Err("Name label should be of type Filling::Text(_)".to_string())
+                    Err(TemplateNestError::InvalidNameLabel(self.label.to_string()))
                 }
             }
         }
