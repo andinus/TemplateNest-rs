@@ -6,7 +6,9 @@
 
 //! # Examples
 //!
-//! Templates placed in `templates` directory:
+//! More examples in `examples/` directory.
+//!
+//! Place these files in `templates` directory:
 //! `templates/00-simple-page.html`:
 //! ```html
 //! <!DOCTYPE html>
@@ -49,9 +51,8 @@
 //! ```
 
 use std::collections::HashMap;
-use std::fs;
-use std::io;
 use std::path::PathBuf;
+use std::{fs, io};
 
 use regex::Regex;
 use thiserror::Error;
