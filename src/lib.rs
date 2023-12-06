@@ -84,6 +84,9 @@ pub struct TemplateNest<'a> {
     /// Used in conjunction with show_labels. If the template is HTML then use
     /// '<!--', '-->'.
     pub comment_delimiters: (&'a str, &'a str),
+
+    /// Intended to improve readability when inspecting nested templates.
+    pub fixed_indent: bool,
 }
 
 /// Represents an indexed template file.
@@ -103,6 +106,9 @@ struct TemplateFileVariable {
     /// the delimeters.
     start_position: usize,
     end_position: usize,
+
+    /// Indent level of the variable.
+    indent_level: usize,
 }
 
 impl Default for TemplateNest<'_> {
@@ -111,6 +117,7 @@ impl Default for TemplateNest<'_> {
             label: "TEMPLATE",
             extension: "html",
             show_labels: false,
+            fixed_indent: false,
             directory: "templates".into(),
             delimiters: ("<!--%", "%-->"),
             comment_delimiters: ("<!--", "-->"),
@@ -155,11 +162,25 @@ impl TemplateNest<'_> {
         let re = Regex::new(&format!("{}(.+?){}", self.delimiters.0, self.delimiters.1)).unwrap();
         for cap in re.captures_iter(&contents) {
             let whole_capture = cap.get(0).unwrap();
+            let start_position = whole_capture.start();
+
+            // If fixed_indent is enable then record the indent level for this
+            // variable. To get the indent level we look at each character in
+            // reverse from the start position of the variable until we find a
+            // newline character.
+            let indent_level = match self.fixed_indent {
+                true => {
+                    let newline_position = &contents[..start_position].rfind('\n').unwrap_or(0);
+                    start_position - newline_position - 1
+                },
+                false => 0,
+            };
 
             variables.push(TemplateFileVariable {
-                name: cap[1].trim().to_string(),
-                start_position: whole_capture.start(),
+                indent_level,
+                start_position,
                 end_position: whole_capture.end(),
+                name: cap[1].trim().to_string(),
             });
         }
 
@@ -198,9 +219,22 @@ impl TemplateNest<'_> {
                     // don't want to mess up all the indexed positions.
                     for var in template_index.variables.iter().rev() {
                         let mut render = "".to_string();
+
+                        // If the variable doesn't exist in template hash then
+                        // replace it by an empty string.
                         if let Some(value) = template_hash.get(&var.name) {
-                            render.push_str(&self.render(value)?);
+                            let mut r: String = self.render(value)?;
+
+                            // If fixed_indent is set then get the indent level
+                            // and replace all newlines in the rendered string.
+                            if self.fixed_indent && var.indent_level != 0 {
+                                let replacement = format!("\n{}", " ".repeat(var.indent_level));
+                                r = r.replace('\n', &replacement);
+                            }
+
+                            render.push_str(&r);
                         }
+
                         rendered.replace_range(var.start_position..var.end_position, &render);
                     }
 
