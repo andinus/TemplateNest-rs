@@ -77,11 +77,11 @@ pub struct TemplateNest<'a> {
     /// Directory where templates are located.
     pub directory: PathBuf,
 
-    /// Prepends & Appends a string to every template which is helpful in
+    /// Prepend & Append a string to every template which is helpful in
     /// identifying which template the output text came from.
     pub show_labels: bool,
 
-    /// Used in conjuction with show_labels. If the template is HTML then use
+    /// Used in conjunction with show_labels. If the template is HTML then use
     /// '<!--', '-->'.
     pub comment_delimiters: (&'a str, &'a str),
 }
