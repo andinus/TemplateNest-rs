@@ -65,6 +65,31 @@ pub enum Filling {
     Template(HashMap<String, Filling>),
 }
 
+impl Filling {
+    /// inserts into a Template, returns an Err if the enum if not of Template
+    /// variant.
+    pub fn insert(&mut self, variable: String, to_insert: Filling) -> Result<(), &'static str> {
+        match self {
+            Filling::Template(ref mut map) => {
+                map.insert(variable, to_insert);
+                Ok(())
+            }
+            _ => Err("Cannot insert into non-Template variant"),
+        }
+    }
+
+    /// push into a List, returns an Err if the enum if not of List variant.
+    pub fn push(&mut self, to_push: Filling) -> Result<(), &'static str> {
+        match self {
+            Filling::List(ref mut list) => {
+                list.push(to_push);
+                Ok(())
+            }
+            _ => Err("Cannot push into non-List variant"),
+        }
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum TemplateNestError {
     #[error("expected template directory at `{0}`")]
