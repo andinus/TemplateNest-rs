@@ -4,7 +4,7 @@
 ~TemplateNest~ is a template engine module for Rust, designed to process nested
 templates quickly and efficiently.
 
-Documentation: https://docs.rs/template-nest/0.1.0/template_nest/
+Documentation: https://docs.rs/template-nest/
 
 For more details on the idea behind ~Template::Nest~ read:
 https://metacpan.org/pod/Template::Nest#DESCRIPTION and
