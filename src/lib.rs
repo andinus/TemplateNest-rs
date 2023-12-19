@@ -141,6 +141,13 @@ pub struct TemplateNest<'a> {
     /// doesn't exist (i.e. name not found in template file) results in an
     /// error.
     pub die_on_bad_params: bool,
+
+    /// Escapes a token delimiter, i.e. if set to '\' then prefixing the token
+    /// delimiters with '\' means it won't be considered a variable.
+    ///
+    /// <!--% token %-->  => is a variable
+    /// \<!--% token %--> => is not a variable. ('\' is removed from output)
+    pub token_escape_char: &'a str,
 }
 
 /// Represents an indexed template file.
@@ -166,6 +173,10 @@ struct TemplateFileVariable {
 
     /// Indent level of the variable.
     indent_level: usize,
+
+    /// If true then this variable was escaped with token_escape_char, we just
+    /// need to remove the escape character.
+    escaped_token: bool
 }
 
 impl Default for TemplateNest<'_> {
@@ -179,6 +190,7 @@ impl Default for TemplateNest<'_> {
             directory: "templates".into(),
             delimiters: ("<!--%", "%-->"),
             comment_delimiters: ("<!--", "-->"),
+            token_escape_char: ""
         }
     }
 }
@@ -227,6 +239,26 @@ impl TemplateNest<'_> {
             let whole_capture = cap.get(0).unwrap();
             let start_position = whole_capture.start();
 
+            // If token_escape_char is set then look behind for it and if we
+            // find the escape char then we're only going to remove the escape
+            // char and not remove this variable.
+            //
+            // The variable can be at the beginning of the file, that will mean
+            // calculating escape_char_start results in an overflow.
+            if self.token_escape_char != "" && start_position > self.token_escape_char.len() {
+                let escape_char_start = start_position - self.token_escape_char.len();
+                if &contents[escape_char_start..start_position] == self.token_escape_char {
+                    variables.push(TemplateFileVariable {
+                        indent_level: 0,
+                        name: "".to_string(),
+                        escaped_token: true,
+                        start_position: escape_char_start,
+                        end_position: escape_char_start + self.token_escape_char.len(),
+                    });
+                    continue;
+                }
+            }
+
             // If fixed_indent is enable then record the indent level for this
             // variable. To get the indent level we look at each character in
             // reverse from the start position of the variable until we find a
@@ -240,13 +272,13 @@ impl TemplateNest<'_> {
             };
 
             let variable_name = cap[1].trim();
-
             variable_names.insert(variable_name.to_string());
             variables.push(TemplateFileVariable {
                 indent_level,
                 start_position,
                 end_position: whole_capture.end(),
                 name: variable_name.to_string(),
+                escaped_token: false
             });
         }
 
@@ -297,6 +329,12 @@ impl TemplateNest<'_> {
                     // Iterate through all variables in reverse. We do this because we
                     // don't want to mess up all the indexed positions.
                     for var in template_index.variables.iter().rev() {
+                        // If the variable was escaped then we just remove the token, not the variable.
+                        if var.escaped_token {
+                            rendered.replace_range(var.start_position..var.end_position, "");
+                            continue;
+                        }
+
                         let mut render = "".to_string();
 
                         // If the variable doesn't exist in template hash then
