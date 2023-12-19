@@ -50,7 +50,7 @@
 //! println!("{}", nest.render(&simple_page).unwrap());
 //! ```
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::{fs, io};
 
@@ -106,6 +106,9 @@ pub enum TemplateNestError {
 
     #[error("encountered hash with invalid name label type (name label: `{0}`)")]
     InvalidNameLabel(String),
+
+    #[error("bad params in template hash, variable not present in template file: `{0}`")]
+    BadParams(String)
 }
 
 /// Renders a template hash to produce an output.
@@ -133,6 +136,11 @@ pub struct TemplateNest<'a> {
 
     /// Intended to improve readability when inspecting nested templates.
     pub fixed_indent: bool,
+
+    /// If True, then an attempt to populate a template with a variable that
+    /// doesn't exist (i.e. name not found in template file) results in an
+    /// error.
+    pub die_on_bad_params: bool,
 }
 
 /// Represents an indexed template file.
@@ -142,6 +150,9 @@ struct TemplateFileIndex {
 
     /// Variables in the template file.
     variables: Vec<TemplateFileVariable>,
+
+    /// Variable names in the template file.
+    variable_names: HashSet<String>
 }
 
 /// Represents the variables in a template file.
@@ -164,6 +175,7 @@ impl Default for TemplateNest<'_> {
             extension: "html",
             show_labels: false,
             fixed_indent: false,
+            die_on_bad_params: false,
             directory: "templates".into(),
             delimiters: ("<!--%", "%-->"),
             comment_delimiters: ("<!--", "-->"),
@@ -207,6 +219,7 @@ impl TemplateNest<'_> {
             }
         };
 
+        let mut variable_names = HashSet::new();
         let mut variables = vec![];
         // Capture all the variables in the template.
         let re = Regex::new(&format!("{}(.+?){}", self.delimiters.0, self.delimiters.1)).unwrap();
@@ -226,15 +239,19 @@ impl TemplateNest<'_> {
                 false => 0,
             };
 
+            let variable_name = cap[1].trim();
+
+            variable_names.insert(variable_name.to_string());
             variables.push(TemplateFileVariable {
                 indent_level,
                 start_position,
                 end_position: whole_capture.end(),
-                name: cap[1].trim().to_string(),
+                name: variable_name.to_string(),
             });
         }
 
         let file_index = TemplateFileIndex {
+            variable_names,
             contents,
             variables,
         };
@@ -262,6 +279,19 @@ impl TemplateNest<'_> {
                 // a vec of template hash.
                 if let Filling::Text(name) = template_label {
                     let template_index = self.index(name)?;
+
+                    // Check for bad params.
+                    if self.die_on_bad_params {
+                        for name in template_hash.keys() {
+                            // If a variable in template_hash is not present in
+                            // the template file and it's not the template label
+                            // then it's a bad param.
+                            if !template_index.variable_names.contains(name) && name != self.label  {
+                                return Err(TemplateNestError::BadParams(name.to_string()));
+                            }
+                        }
+                    }
+
                     let mut rendered = String::from(&template_index.contents);
 
                     // Iterate through all variables in reverse. We do this because we
