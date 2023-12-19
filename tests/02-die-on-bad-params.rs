@@ -16,7 +16,7 @@ fn die_on_page_with_bad_params() {
     );
 
     match nest.render(&page) {
-        Err(TemplateNestError::BadParams(_)) => {},
+        Err(TemplateNestError::BadParams(_)) => {}
         Err(_) => {
             panic!("Must return TemplateNestError::BadParams on bad params error.")
         }
@@ -42,7 +42,7 @@ fn die_on_page_with_bad_params_01() {
     );
 
     match nest.render(&page) {
-        Err(TemplateNestError::BadParams(_)) => {},
+        Err(TemplateNestError::BadParams(_)) => {}
         Err(_) => {
             panic!("Must return TemplateNestError::BadParams on bad params error.")
         }
@@ -69,7 +69,7 @@ fn live_on_page_with_bad_params() {
     match nest.render(&page) {
         Err(TemplateNestError::BadParams(_)) => {
             panic!("Must not return error if die_on_bad_params is false.")
-        },
+        }
         _ => {}
     }
 }

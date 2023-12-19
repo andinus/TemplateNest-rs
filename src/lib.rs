@@ -108,7 +108,7 @@ pub enum TemplateNestError {
     InvalidNameLabel(String),
 
     #[error("bad params in template hash, variable not present in template file: `{0}`")]
-    BadParams(String)
+    BadParams(String),
 }
 
 /// Renders a template hash to produce an output.
@@ -159,7 +159,7 @@ struct TemplateFileIndex {
     variables: Vec<TemplateFileVariable>,
 
     /// Variable names in the template file.
-    variable_names: HashSet<String>
+    variable_names: HashSet<String>,
 }
 
 /// Represents the variables in a template file.
@@ -176,7 +176,7 @@ struct TemplateFileVariable {
 
     /// If true then this variable was escaped with token_escape_char, we just
     /// need to remove the escape character.
-    escaped_token: bool
+    escaped_token: bool,
 }
 
 impl Default for TemplateNest<'_> {
@@ -190,7 +190,7 @@ impl Default for TemplateNest<'_> {
             directory: "templates".into(),
             delimiters: ("<!--%", "%-->"),
             comment_delimiters: ("<!--", "-->"),
-            token_escape_char: ""
+            token_escape_char: "",
         }
     }
 }
@@ -245,7 +245,7 @@ impl TemplateNest<'_> {
             //
             // The variable can be at the beginning of the file, that will mean
             // calculating escape_char_start results in an overflow.
-            if self.token_escape_char != "" && start_position > self.token_escape_char.len() {
+            if !self.token_escape_char.is_empty() && start_position > self.token_escape_char.len() {
                 let escape_char_start = start_position - self.token_escape_char.len();
                 if &contents[escape_char_start..start_position] == self.token_escape_char {
                     variables.push(TemplateFileVariable {
@@ -278,7 +278,7 @@ impl TemplateNest<'_> {
                 start_position,
                 end_position: whole_capture.end(),
                 name: variable_name.to_string(),
-                escaped_token: false
+                escaped_token: false,
             });
         }
 
@@ -318,7 +318,7 @@ impl TemplateNest<'_> {
                             // If a variable in template_hash is not present in
                             // the template file and it's not the template label
                             // then it's a bad param.
-                            if !template_index.variable_names.contains(name) && name != self.label  {
+                            if !template_index.variable_names.contains(name) && name != self.label {
                                 return Err(TemplateNestError::BadParams(name.to_string()));
                             }
                         }
