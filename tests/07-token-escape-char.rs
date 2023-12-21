@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::fs;
 use template_nest::{filling, Filling, TemplateNest, TemplateNestError};
 
+#[cfg(test)]
+use pretty_assertions::assert_eq;
+
 #[test]
 fn render_with_escaped_variable() -> Result<(), TemplateNestError> {
     let nest = TemplateNest {

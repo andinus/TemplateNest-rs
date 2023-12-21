@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use template_nest::{filling, Filling, TemplateNest, TemplateNestError};
 
+#[cfg(test)]
+use pretty_assertions::assert_eq;
+
 #[test]
 fn render_simple_page_with_fixed_indent() -> Result<(), TemplateNestError> {
     let nest = TemplateNest {
