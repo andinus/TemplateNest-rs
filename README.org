@@ -15,6 +15,14 @@ originally authored ~Template::Nest~ in Perl 5.
 
 * News
 
+** v0.2.1 - 2024-01-13
+
++ Added support for several options:
+  + ~defaults~
+  + ~die_on_bad_params~
+  + ~token_escape_char~
++ Added functions to modify a Filling enum (examples included)
+
 ** v0.2.0 - 2023-12-06
 
 This release is not backwards compatible, functions ~new~ & ~render~ now return
