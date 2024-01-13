@@ -148,6 +148,10 @@ pub struct TemplateNest<'a> {
     /// <!--% token %-->  => is a variable
     /// \<!--% token %--> => is not a variable. ('\' is removed from output)
     pub token_escape_char: &'a str,
+
+    /// Provide a hash of default values that are substituted if template hash
+    /// does not provide a value.
+    pub defaults: HashMap<String, Filling>,
 }
 
 /// Represents an indexed template file.
@@ -191,6 +195,7 @@ impl Default for TemplateNest<'_> {
             delimiters: ("<!--%", "%-->"),
             comment_delimiters: ("<!--", "-->"),
             token_escape_char: "",
+            defaults: HashMap::new(),
         }
     }
 }
@@ -335,11 +340,17 @@ impl TemplateNest<'_> {
                             continue;
                         }
 
-                        let mut render = "".to_string();
-
                         // If the variable doesn't exist in template hash then
                         // replace it by an empty string.
-                        if let Some(value) = template_hash.get(&var.name) {
+                        let mut render = "".to_string();
+
+                        // Look for the variable in template_hash, if it's not
+                        // provided then we look at defaults HashMap, and then
+                        // considering variable namespacing.
+                        if let Some(value) = template_hash
+                            .get(&var.name)
+                            .or_else(|| self.defaults.get(&var.name))
+                        {
                             let mut r: String = self.render(value)?;
 
                             // If fixed_indent is set then get the indent level
