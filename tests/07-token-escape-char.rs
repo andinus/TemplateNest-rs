@@ -9,7 +9,7 @@ use pretty_assertions::assert_eq;
 fn render_with_escaped_variable() -> Result<(), TemplateNestError> {
     let nest = TemplateNest {
         directory: "templates".into(),
-        token_escape_char: "\\",
+        token_escape_char: "\\".to_string(),
         ..Default::default()
     };
     let page = filling!(
@@ -32,7 +32,7 @@ fn render_with_escaped_variable() -> Result<(), TemplateNestError> {
 fn render_with_escaped_variable_at_start() -> Result<(), TemplateNestError> {
     let nest = TemplateNest {
         directory: "templates".into(),
-        token_escape_char: "\\",
+        token_escape_char: "\\".to_string(),
         ..Default::default()
     };
     let page = filling!(

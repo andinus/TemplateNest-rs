@@ -5,7 +5,7 @@ use template_nest::{filling, Filling};
 fn main() {
     let nest = TemplateNest {
         directory: "templates".into(),
-        label: &"NAME",
+        label: "NAME".to_string(),
         ..Default::default()
     };
     let simple_page = filling!(

@@ -38,7 +38,7 @@ fn render_with_show_labels_alt_delimiters() -> Result<(), TemplateNestError> {
     let nest = TemplateNest {
         directory: "templates".into(),
         show_labels: true,
-        comment_delimiters: (&"<!--!", &"!-->"),
+        comment_delimiters: ("<!--!".to_string(), "!-->".to_string()),
         ..Default::default()
     };
     let page = filling!(

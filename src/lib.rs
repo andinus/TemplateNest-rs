@@ -59,6 +59,7 @@ use thiserror::Error;
 
 /// Represents a variable in a template hash, can be a string, another template
 /// hash or an array of template hash.
+#[derive(Clone)]
 pub enum Filling {
     Text(String),
     List(Vec<Filling>),
@@ -112,16 +113,17 @@ pub enum TemplateNestError {
 }
 
 /// Renders a template hash to produce an output.
-pub struct TemplateNest<'a> {
+#[derive(Clone)]
+pub struct TemplateNest {
     /// Delimiters used in the template. It is a tuple of two strings,
     /// representing the start and end delimiters.
-    pub delimiters: (&'a str, &'a str),
+    pub delimiters: (String, String),
 
     /// Name label used to identify the template to be used.
-    pub label: &'a str,
+    pub label: String,
 
     /// Template extension, appended on label to identify the template.
-    pub extension: &'a str,
+    pub extension: String,
 
     /// Directory where templates are located.
     pub directory: PathBuf,
@@ -132,7 +134,7 @@ pub struct TemplateNest<'a> {
 
     /// Used in conjunction with show_labels. If the template is HTML then use
     /// '<!--', '-->'.
-    pub comment_delimiters: (&'a str, &'a str),
+    pub comment_delimiters: (String, String),
 
     /// Intended to improve readability when inspecting nested templates.
     pub fixed_indent: bool,
@@ -147,7 +149,7 @@ pub struct TemplateNest<'a> {
     ///
     /// <!--% token %-->  => is a variable
     /// \<!--% token %--> => is not a variable. ('\' is removed from output)
-    pub token_escape_char: &'a str,
+    pub token_escape_char: String,
 
     /// Provide a hash of default values that are substituted if template hash
     /// does not provide a value.
@@ -183,24 +185,24 @@ struct TemplateFileVariable {
     escaped_token: bool,
 }
 
-impl Default for TemplateNest<'_> {
+impl Default for TemplateNest {
     fn default() -> Self {
         TemplateNest {
-            label: "TEMPLATE",
-            extension: "html",
+            label: "TEMPLATE".to_string(),
+            extension: "html".to_string(),
             show_labels: false,
             fixed_indent: false,
             die_on_bad_params: false,
             directory: "templates".into(),
-            delimiters: ("<!--%", "%-->"),
-            comment_delimiters: ("<!--", "-->"),
-            token_escape_char: "",
+            delimiters: ("<!--%".to_string(), "%-->".to_string()),
+            comment_delimiters: ("<!--".to_string(), "-->".to_string()),
+            token_escape_char: "".to_string(),
             defaults: HashMap::new(),
         }
     }
 }
 
-impl TemplateNest<'_> {
+impl TemplateNest {
     /// Creates a new instance of TemplateNest with the specified directory.
     pub fn new(directory_str: &str) -> Result<Self, TemplateNestError> {
         let directory = PathBuf::from(directory_str);
@@ -309,7 +311,7 @@ impl TemplateNest<'_> {
             }
             Filling::Template(template_hash) => {
                 let template_label: &Filling = template_hash
-                    .get(self.label)
+                    .get(&self.label)
                     .ok_or(TemplateNestError::NoNameLabel(self.label.to_string()))?;
 
                 // template_name must contain a string, it cannot be a template hash or
@@ -323,7 +325,7 @@ impl TemplateNest<'_> {
                             // If a variable in template_hash is not present in
                             // the template file and it's not the template label
                             // then it's a bad param.
-                            if !template_index.variable_names.contains(name) && name != self.label {
+                            if !template_index.variable_names.contains(name) && name != &self.label {
                                 return Err(TemplateNestError::BadParams(name.to_string()));
                             }
                         }
