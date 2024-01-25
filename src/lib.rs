@@ -126,7 +126,7 @@ pub struct TemplateNest {
     pub defaults: HashMap<String, Value>,
 
     /// If True, then all Value::String() input is escaped. Default: True
-    pub escape_html: bool
+    pub escape_html: bool,
 }
 
 /// Represents an indexed template file.
@@ -171,7 +171,7 @@ impl Default for TemplateNest {
             comment_delimiters: ("<!--".to_string(), "-->".to_string()),
             token_escape_char: "".to_string(),
             defaults: HashMap::new(),
-            escape_html: true
+            escape_html: true,
         }
     }
 }
