@@ -22,6 +22,11 @@ change breaks backwards compatibility, the changes required to make previous
 code work with this version is minimal. ~serde_json~ has a ~json~ macro that can
 be used instead of ~filling~.
 
++ Added option ~escape_html~: Escape Value::String() by default.
+
+  HTML is expected to live in template files, this provides safety by default
+  (in case user forgets to escape user input before using the output).
+
 ** v0.2.2 - 2024-01-13
 
 Skipping v0.2.1 due to wrong upload on crates.

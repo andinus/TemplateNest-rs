@@ -53,6 +53,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::{fs, io};
 
+use html_escape::encode_safe;
 use regex::Regex;
 use serde_json::Value;
 use thiserror::Error;
@@ -123,6 +124,9 @@ pub struct TemplateNest {
     /// Provide a hash of default values that are substituted if template hash
     /// does not provide a value.
     pub defaults: HashMap<String, Value>,
+
+    /// If True, then all Value::String() input is escaped. Default: True
+    pub escape_html: bool
 }
 
 /// Represents an indexed template file.
@@ -167,6 +171,7 @@ impl Default for TemplateNest {
             comment_delimiters: ("<!--".to_string(), "-->".to_string()),
             token_escape_char: "".to_string(),
             defaults: HashMap::new(),
+            escape_html: true
         }
     }
 }
@@ -328,7 +333,7 @@ impl TemplateNest {
                         .or_else(|| self.defaults.get(&var.name))
                     {
                         let mut r: String = match value {
-                            Value::String(text) => text.to_string(),
+                            Value::String(text) => encode_safe(text).to_string(),
                             _ => self.render(value)?,
                         };
 
