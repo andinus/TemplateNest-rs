@@ -1,5 +1,5 @@
-use std::collections::HashMap;
-use template_nest::{filling, Filling, TemplateNest, TemplateNestError};
+use serde_json::json;
+use template_nest::{TemplateNest, TemplateNestError};
 
 #[cfg(test)]
 use pretty_assertions::assert_eq;
@@ -11,16 +11,16 @@ fn render_simple_page_with_fixed_indent() -> Result<(), TemplateNestError> {
         fixed_indent: true,
         ..Default::default()
     };
-    let page = filling!(
+    let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",
         "simple_component":  {
             "TEMPLATE": "02-simple-component-multi-line",
         }
-    );
-    let page_output = filling!(
+    });
+    let page_output = json!({
         "TEMPLATE": "output/07-simple-page-fixed-indent",
-    );
+    });
 
     assert_eq!(nest.render(&page)?, nest.render(&page_output)?,);
     Ok(())
@@ -33,7 +33,7 @@ fn render_complex_page_with_fixed_indent() -> Result<(), TemplateNestError> {
         fixed_indent: true,
         ..Default::default()
     };
-    let page = filling!(
+    let page = json!({
         "TEMPLATE": "10-complex-page",
         "title": "Complex Page",
         "pre_body": {
@@ -75,10 +75,10 @@ fn render_complex_page_with_fixed_indent() -> Result<(), TemplateNestError> {
         "post_footer": {
             "TEMPLATE": "19-scripts"
         }
-    );
-    let page_output = filling!(
+    });
+    let page_output = json!({
         "TEMPLATE": "output/08-complex-page-fixed-indent",
-    );
+    });
 
     assert_eq!(nest.render(&page)?, nest.render(&page_output)?,);
     Ok(())

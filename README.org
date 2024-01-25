@@ -15,6 +15,13 @@ originally authored ~Template::Nest~ in Perl 5.
 
 * News
 
+** v0.3.0 - Upcoming
+
+Migrated away from using custom type ~Filling~ to ~serde_json::Value~. This
+change breaks backwards compatibility, the changes required to make previous
+code work with this version is minimal. ~serde_json~ has a ~json~ macro that can
+be used instead of ~filling~.
+
 ** v0.2.2 - 2024-01-13
 
 Skipping v0.2.1 due to wrong upload on crates.

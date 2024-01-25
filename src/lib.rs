@@ -35,18 +35,17 @@
 //! TemplateNest::render to render a page:
 //! ```rust
 //! use template_nest::TemplateNest;
-//! use template_nest::{filling, Filling};
-//! use std::collections::HashMap;
+//! use serde_json::json;
 //!
 //! let nest = TemplateNest::new("templates").unwrap();
-//! let simple_page = filling!(
+//! let simple_page = json!({
 //!     "TEMPLATE": "00-simple-page",
 //!     "variable": "Simple Variable",
 //!     "simple_component":  {
 //!         "TEMPLATE":"01-simple-component",
 //!         "variable": "Simple Variable in Simple Component"
 //!     }
-//! );
+//! });
 //! println!("{}", nest.render(&simple_page).unwrap());
 //! ```
 
@@ -55,41 +54,8 @@ use std::path::PathBuf;
 use std::{fs, io};
 
 use regex::Regex;
+use serde_json::Value;
 use thiserror::Error;
-
-/// Represents a variable in a template hash, can be a string, another template
-/// hash or an array of template hash.
-#[derive(Clone)]
-pub enum Filling {
-    Text(String),
-    List(Vec<Filling>),
-    Template(HashMap<String, Filling>),
-}
-
-impl Filling {
-    /// inserts into a Template, returns an Err if the enum if not of Template
-    /// variant.
-    pub fn insert(&mut self, variable: String, to_insert: Filling) -> Result<(), &'static str> {
-        match self {
-            Filling::Template(ref mut map) => {
-                map.insert(variable, to_insert);
-                Ok(())
-            }
-            _ => Err("Cannot insert into non-Template variant"),
-        }
-    }
-
-    /// push into a List, returns an Err if the enum if not of List variant.
-    pub fn push(&mut self, to_push: Filling) -> Result<(), &'static str> {
-        match self {
-            Filling::List(ref mut list) => {
-                list.push(to_push);
-                Ok(())
-            }
-            _ => Err("Cannot push into non-List variant"),
-        }
-    }
-}
 
 #[derive(Error, Debug)]
 pub enum TemplateNestError {
@@ -110,6 +76,9 @@ pub enum TemplateNestError {
 
     #[error("bad params in template hash, variable not present in template file: `{0}`")]
     BadParams(String),
+
+    #[error("cannot handle Number, Boolean & Null values")]
+    CannotHandleValues,
 }
 
 /// Renders a template hash to produce an output.
@@ -153,7 +122,7 @@ pub struct TemplateNest {
 
     /// Provide a hash of default values that are substituted if template hash
     /// does not provide a value.
-    pub defaults: HashMap<String, Filling>,
+    pub defaults: HashMap<String, Value>,
 }
 
 /// Represents an indexed template file.
@@ -254,7 +223,7 @@ impl TemplateNest {
             // calculating escape_char_start results in an overflow.
             if !self.token_escape_char.is_empty() && start_position > self.token_escape_char.len() {
                 let escape_char_start = start_position - self.token_escape_char.len();
-                if &contents[escape_char_start..start_position] == self.token_escape_char {
+                if contents[escape_char_start..start_position] == self.token_escape_char {
                     variables.push(TemplateFileVariable {
                         indent_level: 0,
                         name: "".to_string(),
@@ -299,239 +268,107 @@ impl TemplateNest {
 
     /// Given a TemplateHash, it parses the TemplateHash and renders a String
     /// output.
-    pub fn render(&self, filling: &Filling) -> Result<String, TemplateNestError> {
-        match filling {
-            Filling::Text(text) => Ok(text.to_string()),
-            Filling::List(list) => {
+    pub fn render(&self, to_render: &Value) -> Result<String, TemplateNestError> {
+        match to_render {
+            Value::String(_) | Value::Null | Value::Bool(_) | Value::Number(_) => {
+                Err(TemplateNestError::CannotHandleValues)
+            }
+            Value::Array(t_array) => {
                 let mut render = "".to_string();
-                for f in list {
-                    render.push_str(&self.render(f)?);
+                for t in t_array {
+                    render.push_str(&self.render(t)?);
                 }
                 Ok(render)
             }
-            Filling::Template(template_hash) => {
-                let template_label: &Filling = template_hash
+            Value::Object(t_hash) => {
+                let t_label: &Value = t_hash
                     .get(&self.label)
                     .ok_or(TemplateNestError::NoNameLabel(self.label.to_string()))?;
 
-                // template_name must contain a string, it cannot be a template hash or
-                // a vec of template hash.
-                if let Filling::Text(name) = template_label {
-                    let template_index = self.index(name)?;
+                // template name/path must contain a string.
+                let t_path = match t_label {
+                    Value::String(path) => path,
+                    _ => return Err(TemplateNestError::InvalidNameLabel(self.label.to_string())),
+                };
+                // index the template path.
+                let t_index = self.index(t_path)?;
 
-                    // Check for bad params.
-                    if self.die_on_bad_params {
-                        for name in template_hash.keys() {
-                            // If a variable in template_hash is not present in
-                            // the template file and it's not the template label
-                            // then it's a bad param.
-                            if !template_index.variable_names.contains(name) && name != &self.label {
-                                return Err(TemplateNestError::BadParams(name.to_string()));
-                            }
+                if self.die_on_bad_params {
+                    for var_name in t_hash.keys() {
+                        // If a variable in t_hash is not present in the
+                        // template file and it's not the template label then
+                        // it's a bad param.
+                        if !t_index.variable_names.contains(var_name) && var_name != &self.label {
+                            return Err(TemplateNestError::BadParams(var_name.to_string()));
                         }
                     }
-
-                    let mut rendered = String::from(&template_index.contents);
-
-                    // Iterate through all variables in reverse. We do this because we
-                    // don't want to mess up all the indexed positions.
-                    for var in template_index.variables.iter().rev() {
-                        // If the variable was escaped then we just remove the token, not the variable.
-                        if var.escaped_token {
-                            rendered.replace_range(var.start_position..var.end_position, "");
-                            continue;
-                        }
-
-                        // If the variable doesn't exist in template hash then
-                        // replace it by an empty string.
-                        let mut render = "".to_string();
-
-                        // Look for the variable in template_hash, if it's not
-                        // provided then we look at defaults HashMap, and then
-                        // considering variable namespacing.
-                        if let Some(value) = template_hash
-                            .get(&var.name)
-                            .or_else(|| self.defaults.get(&var.name))
-                        {
-                            let mut r: String = self.render(value)?;
-
-                            // If fixed_indent is set then get the indent level
-                            // and replace all newlines in the rendered string.
-                            if self.fixed_indent && var.indent_level != 0 {
-                                let replacement = format!("\n{}", " ".repeat(var.indent_level));
-                                r = r.replace('\n', &replacement);
-                            }
-
-                            render.push_str(&r);
-                        }
-
-                        rendered.replace_range(var.start_position..var.end_position, &render);
-                    }
-
-                    // Add lables to the rendered string if show_labels is true.
-                    if self.show_labels {
-                        rendered.replace_range(
-                            0..0,
-                            &format!(
-                                "{} BEGIN {} {}\n",
-                                self.comment_delimiters.0, name, self.comment_delimiters.1
-                            ),
-                        );
-                        rendered.replace_range(
-                            rendered.len()..rendered.len(),
-                            &format!(
-                                "{} END {} {}\n",
-                                self.comment_delimiters.0, name, self.comment_delimiters.1
-                            ),
-                        );
-                    }
-
-                    // Trim trailing without cloning `rendered'.
-                    let len_withoutcrlf = rendered.trim_end().len();
-                    rendered.truncate(len_withoutcrlf);
-
-                    Ok(rendered)
-                } else {
-                    Err(TemplateNestError::InvalidNameLabel(self.label.to_string()))
                 }
+
+                let mut rendered = String::from(&t_index.contents);
+
+                // Iterate through all variables in reverse. We do this because
+                // we don't want to mess up all the indexed positions.
+                for var in t_index.variables.iter().rev() {
+                    // If the variable was escaped then we just remove the
+                    // token, not the variable.
+                    if var.escaped_token {
+                        rendered.replace_range(var.start_position..var.end_position, "");
+                        continue;
+                    }
+
+                    // If the variable doesn't exist in template hash then
+                    // replace it by an empty string.
+                    let mut render = "".to_string();
+
+                    // Look for the variable in t_hash, if it's not provided
+                    // then we look at defaults HashMap, and then considering
+                    // variable namespacing.
+                    if let Some(value) = t_hash
+                        .get(&var.name)
+                        .or_else(|| self.defaults.get(&var.name))
+                    {
+                        let mut r: String = match value {
+                            Value::String(text) => text.to_string(),
+                            _ => self.render(value)?,
+                        };
+
+                        // If fixed_indent is set then get the indent level and
+                        // replace all newlines in the rendered string.
+                        if self.fixed_indent && var.indent_level != 0 {
+                            let replacement = format!("\n{}", " ".repeat(var.indent_level));
+                            r = r.replace('\n', &replacement);
+                        }
+
+                        render.push_str(&r);
+                    }
+
+                    rendered.replace_range(var.start_position..var.end_position, &render);
+                }
+
+                // Add lables to the rendered string if show_labels is true.
+                if self.show_labels {
+                    rendered.replace_range(
+                        0..0,
+                        &format!(
+                            "{} BEGIN {} {}\n",
+                            self.comment_delimiters.0, t_path, self.comment_delimiters.1
+                        ),
+                    );
+                    rendered.replace_range(
+                        rendered.len()..rendered.len(),
+                        &format!(
+                            "{} END {} {}\n",
+                            self.comment_delimiters.0, t_path, self.comment_delimiters.1
+                        ),
+                    );
+                }
+
+                // Trim trailing without cloning `rendered'.
+                let len_withoutcrlf = rendered.trim_end().len();
+                rendered.truncate(len_withoutcrlf);
+
+                Ok(rendered)
             }
         }
     }
-}
-
-// The below macros are adapted from the json-rust macros (https://docs.rs/json/latest/json/#macros)
-#[macro_export]
-macro_rules! filling_list {
-    //[] => ($crate::JsonValue::new_array());
-    [] => { "".to_string() };
-
-    // Handles for token tree items
-    [@ITEM($( $i:expr, )*) $item:tt, $( $cont:tt )+] => {
-        $crate::filling_list!(
-            @ITEM($( $i, )* $crate::filling_text!($item), )
-                $( $cont )*
-        )
-    };
-    (@ITEM($( $i:expr, )*) $item:tt,) => ({
-        $crate::filling_list!(@END $( $i, )* $crate::filling_text!($item), )
-    });
-    (@ITEM($( $i:expr, )*) $item:tt) => ({
-        $crate::filling_list!(@END $( $i, )* $crate::filling_text!($item), )
-    });
-
-    // Handles for expression items
-    [@ITEM($( $i:expr, )*) $item:expr, $( $cont:tt )+] => {
-        $crate::filling_list!(
-            @ITEM($( $i, )* $crate::filling_text!($item), )
-                $( $cont )*
-        )
-    };
-    (@ITEM($( $i:expr, )*) $item:expr,) => ({
-        $crate::filling_list!(@END $( $i, )* $crate::filling_text!($item), )
-    });
-    (@ITEM($( $i:expr, )*) $item:expr) => ({
-        $crate::filling_list!(@END $( $i, )* $crate::filling_text!($item), )
-    });
-
-    // Construct the actual array
-    (@END $( $i:expr, )*) => ({
-        let size = 0 $( + {let _ = &$i; 1} )*;
-        let mut vec: Vec<Filling> = Vec::with_capacity(size);
-
-        $(
-            vec.push($i);
-        )*
-
-            $crate::Filling::List( vec )
-    });
-
-    // Entry point to the macro
-    ($( $cont:tt )+) => {
-        $crate::filling_list!(@ITEM() $($cont)*)
-    };
-}
-
-/// Helper macro for converting types into `Filling::Text`. It's used internally
-/// by the `filling!` and `filling_list!` macros.
-#[macro_export]
-macro_rules! filling_text {
-    //( null ) => { $crate::Null };
-    ( null ) => { "".to_string() };
-    ( [$( $token:tt )*] ) => {
-        // 10
-        $crate::filling_list![ $( $token )* ]
-    };
-    ( {$( $token:tt )*} ) => {
-        $crate::filling!{ $( $token )* }
-    };
-    { $value:expr } => { $crate::Filling::Text($value.to_string()) };
-}
-
-/// Helper macro for creating instances of `Filling`.
-#[macro_export]
-macro_rules! filling {
-    {} => { "".to_string() };
-
-    // Handles for different types of keys
-    (@ENTRY($( $k:expr => $v:expr, )*) $key:ident: $( $cont:tt )*) => {
-        $crate::filling!(@ENTRY($( $k => $v, )*) stringify!($key) => $($cont)*)
-    };
-    (@ENTRY($( $k:expr => $v:expr, )*) $key:literal: $( $cont:tt )*) => {
-        $crate::filling!(@ENTRY($( $k => $v, )*) $key => $($cont)*)
-    };
-    (@ENTRY($( $k:expr => $v:expr, )*) [$key:expr]: $( $cont:tt )*) => {
-        $crate::filling!(@ENTRY($( $k => $v, )*) $key => $($cont)*)
-    };
-
-    // Handles for token tree values
-    (@ENTRY($( $k:expr => $v:expr, )*) $key:expr => $value:tt, $( $cont:tt )+) => {
-        $crate::filling!(
-            @ENTRY($( $k => $v, )* $key => $crate::filling_text!($value), )
-                $( $cont )*
-        )
-    };
-    (@ENTRY($( $k:expr => $v:expr, )*) $key:expr => $value:tt,) => ({
-        $crate::filling!(@END $( $k => $v, )* $key => $crate::filling_text!($value), )
-    });
-    (@ENTRY($( $k:expr => $v:expr, )*) $key:expr => $value:tt) => ({
-        $crate::filling!(@END $( $k => $v, )* $key => $crate::filling_text!($value), )
-    });
-
-    // Handles for expression values
-    (@ENTRY($( $k:expr => $v:expr, )*) $key:expr => $value:expr, $( $cont:tt )+) => {
-        $crate::filling!(
-            @ENTRY($( $k => $v, )* $key => $crate::filling_text!($value), )
-                $( $cont )*
-        )
-    };
-    (@ENTRY($( $k:expr => $v:expr, )*) $key:expr => $value:expr,) => ({
-        $crate::filling!(@END $( $k => $v, )* $key => $crate::filling_text!($value), )
-    });
-
-    (@ENTRY($( $k:expr => $v:expr, )*) $key:expr => $value:expr) => ({
-        $crate::filling!(@END $( $k => $v, )* $key => $crate::filling_text!($value), )
-    });
-
-    // Construct the actual object
-    (@END $( $k:expr => $v:expr, )*) => ({
-        let mut params : HashMap<String, Filling> = Default::default();
-        $(
-            params.insert($k.to_string(), $v);
-        )*
-            let template = $crate::Filling::Template( params );
-        template
-    });
-
-    // Entry point to the macro
-    ($key:tt: $( $cont:tt )+) => {
-        $crate::filling!(@ENTRY() $key: $($cont)*)
-    };
-
-    // Legacy macro
-    ($( $k:expr => $v:expr, )*) => {
-        $crate::filling!(@END $( $k => $crate::filling_text!($v), )*)
-    };
-    ($( $k:expr => $v:expr ),*) => {
-        $crate::filling!(@END $( $k => $crate::filling_text!($v), )*)
-    };
 }

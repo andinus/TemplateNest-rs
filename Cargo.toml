@@ -1,6 +1,6 @@
 [package]
 name = "template-nest"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 authors = ["Tom Gracey", "Andinus <andinus@nand.sh>"]
 description = "TemplateNest is a template engine for Rust, designed to process nested templates quickly and efficiently."
@@ -12,6 +12,7 @@ rust-version = "1.65"
 
 [dependencies]
 regex = "1.10"
+serde_json = "1.0"
 thiserror = "1.0"
 
 [dev-dependencies]

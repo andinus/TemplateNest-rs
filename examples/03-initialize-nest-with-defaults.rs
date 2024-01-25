@@ -1,6 +1,5 @@
-use std::collections::HashMap;
+use serde_json::json;
 use template_nest::TemplateNest;
-use template_nest::{filling, Filling};
 
 fn main() {
     let nest = TemplateNest {
@@ -8,13 +7,13 @@ fn main() {
         label: "NAME".to_string(),
         ..Default::default()
     };
-    let simple_page = filling!(
+    let simple_page = json!({
         "NAME": "00-simple-page",
         "variable": "Simple Variable",
         "simple_component":  {
             "NAME":"01-simple-component",
             "variable": "Simple Variable in Simple Component"
         }
-    );
+    });
     println!("{}", nest.render(&simple_page).unwrap());
 }

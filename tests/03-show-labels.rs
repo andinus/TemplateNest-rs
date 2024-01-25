@@ -1,5 +1,5 @@
-use std::collections::HashMap;
-use template_nest::{filling, Filling, TemplateNest, TemplateNestError};
+use serde_json::json;
+use template_nest::{TemplateNest, TemplateNestError};
 
 #[cfg(test)]
 use pretty_assertions::assert_eq;
@@ -11,23 +11,23 @@ fn render_with_show_labels() -> Result<(), TemplateNestError> {
         show_labels: true,
         ..Default::default()
     };
-    let page = filling!(
+    let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",
         "simple_component":  {
             "TEMPLATE":"01-simple-component",
             "variable": "Simple Variable in Simple Component"
         }
-    );
+    });
 
     let nest_no_labels = TemplateNest {
         directory: "templates".into(),
         show_labels: false,
         ..Default::default()
     };
-    let page_output = filling!(
+    let page_output = json!({
         "TEMPLATE": "output/04-simple-page-with-labels",
-    );
+    });
 
     assert_eq!(nest.render(&page)?, nest_no_labels.render(&page_output)?,);
     Ok(())
@@ -41,23 +41,23 @@ fn render_with_show_labels_alt_delimiters() -> Result<(), TemplateNestError> {
         comment_delimiters: ("<!--!".to_string(), "!-->".to_string()),
         ..Default::default()
     };
-    let page = filling!(
+    let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",
         "simple_component":  {
             "TEMPLATE":"01-simple-component",
             "variable": "Simple Variable in Simple Component"
         }
-    );
+    });
 
     let nest_no_labels = TemplateNest {
         directory: "templates".into(),
         show_labels: false,
         ..Default::default()
     };
-    let page_output = filling!(
+    let page_output = json!({
         "TEMPLATE": "output/05-simple-page-with-labels-alt-delims",
-    );
+    });
 
     assert_eq!(nest.render(&page)?, nest_no_labels.render(&page_output)?,);
     Ok(())

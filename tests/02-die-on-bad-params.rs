@@ -1,5 +1,5 @@
-use std::collections::HashMap;
-use template_nest::{filling, Filling, TemplateNest, TemplateNestError};
+use serde_json::json;
+use template_nest::{TemplateNest, TemplateNestError};
 
 #[test]
 fn die_on_page_with_bad_params() {
@@ -8,12 +8,12 @@ fn die_on_page_with_bad_params() {
         die_on_bad_params: true,
         ..Default::default()
     };
-    let page = filling!(
+    let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",
         "simple_component":  "Simple Component",
         "a_bad_param": "Bad Param"
-    );
+    });
 
     match nest.render(&page) {
         Err(TemplateNestError::BadParams(_)) => {}
@@ -35,11 +35,11 @@ fn die_on_page_with_bad_params_01() {
         die_on_bad_params: true,
         ..Default::default()
     };
-    let page = filling!(
+    let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",
         "a_bad_param": "Bad Param"
-    );
+    });
 
     match nest.render(&page) {
         Err(TemplateNestError::BadParams(_)) => {}
@@ -59,12 +59,12 @@ fn live_on_page_with_bad_params() {
         die_on_bad_params: false,
         ..Default::default()
     };
-    let page = filling!(
+    let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",
         "simple_component":  "Simple Component",
         "a_bad_param": "Bad Param"
-    );
+    });
 
     match nest.render(&page) {
         Err(TemplateNestError::BadParams(_)) => {
