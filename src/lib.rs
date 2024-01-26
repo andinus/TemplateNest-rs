@@ -275,9 +275,10 @@ impl TemplateNest {
     /// output.
     pub fn render(&self, to_render: &Value) -> Result<String, TemplateNestError> {
         match to_render {
-            Value::String(_) | Value::Null | Value::Bool(_) | Value::Number(_) => {
+            Value::String(_) | Value::Bool(_) | Value::Number(_) => {
                 Err(TemplateNestError::CannotHandleValues)
             }
+            Value::Null => Ok("".to_string()),
             Value::Array(t_array) => {
                 let mut render = "".to_string();
                 for t in t_array {
