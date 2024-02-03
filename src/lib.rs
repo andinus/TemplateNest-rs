@@ -77,9 +77,6 @@ pub enum TemplateNestError {
 
     #[error("bad params in template hash, variable not present in template file: `{0}`")]
     BadParams(String),
-
-    #[error("cannot handle Number, Boolean & Null values")]
-    CannotHandleValues,
 }
 
 /// Renders a template hash to produce an output.
@@ -275,10 +272,10 @@ impl TemplateNest {
     /// output.
     pub fn render(&self, to_render: &Value) -> Result<String, TemplateNestError> {
         match to_render {
-            Value::String(_) | Value::Bool(_) | Value::Number(_) => {
-                Err(TemplateNestError::CannotHandleValues)
-            }
             Value::Null => Ok("".to_string()),
+            Value::Bool(x) => Ok(x.to_string()),
+            Value::String(x) => Ok(x.to_string()),
+            Value::Number(x) => Ok(x.to_string()),
             Value::Array(t_array) => {
                 let mut render = "".to_string();
                 for t in t_array {
