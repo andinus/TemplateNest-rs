@@ -15,6 +15,7 @@ regex = "1.10"
 serde_json = "1.0"
 thiserror = "1.0"
 html-escape = "0.2"
+walkdir = "2"
 
 [dev-dependencies]
 pretty_assertions = "1.0"

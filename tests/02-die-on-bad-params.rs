@@ -1,13 +1,14 @@
 use serde_json::json;
-use template_nest::{TemplateNest, TemplateNestError};
+use template_nest::{TemplateNest, TemplateNestError, TemplateNestOption};
 
 #[test]
 fn die_on_page_with_bad_params() {
-    let nest = TemplateNest {
+    let nest = TemplateNest::new(TemplateNestOption {
         directory: "templates".into(),
         die_on_bad_params: true,
         ..Default::default()
-    };
+    })
+    .unwrap();
     let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",
@@ -30,11 +31,13 @@ fn die_on_page_with_bad_params() {
 /// template file.
 #[test]
 fn die_on_page_with_bad_params_01() {
-    let nest = TemplateNest {
+    let nest = TemplateNest::new(TemplateNestOption {
         directory: "templates".into(),
         die_on_bad_params: true,
         ..Default::default()
-    };
+    })
+    .unwrap();
+
     let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",
@@ -54,11 +57,13 @@ fn die_on_page_with_bad_params_01() {
 
 #[test]
 fn live_on_page_with_bad_params() {
-    let nest = TemplateNest {
+    let nest = TemplateNest::new(TemplateNestOption {
         directory: "templates".into(),
         die_on_bad_params: false,
         ..Default::default()
-    };
+    })
+    .unwrap();
+
     let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",

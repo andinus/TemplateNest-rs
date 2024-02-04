@@ -1,7 +1,10 @@
-use template_nest::{TemplateNest, TemplateNestError};
+use template_nest::{TemplateNest, TemplateNestError, TemplateNestOption};
 
 #[test]
 fn initialize() -> Result<(), TemplateNestError> {
-    TemplateNest::new("templates")?;
+    TemplateNest::new(TemplateNestOption {
+        directory: "templates".into(),
+        ..Default::default()
+    })?;
     Ok(())
 }

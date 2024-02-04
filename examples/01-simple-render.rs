@@ -1,8 +1,11 @@
 use serde_json::json;
-use template_nest::{TemplateNest, TemplateNestError};
+use template_nest::{TemplateNest, TemplateNestError, TemplateNestOption};
 
 fn main() -> Result<(), TemplateNestError> {
-    let nest = TemplateNest::new("templates")?;
+    let nest = TemplateNest::new(TemplateNestOption {
+        directory: "templates".into(),
+        ..Default::default()
+    })?;
     let simple_page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",

@@ -1,12 +1,15 @@
 use serde_json::json;
-use template_nest::{TemplateNest, TemplateNestError};
+use template_nest::{TemplateNest, TemplateNestError, TemplateNestOption};
 
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 
 #[test]
 fn render_simple_page() -> Result<(), TemplateNestError> {
-    let nest = TemplateNest::new("templates")?;
+    let nest = TemplateNest::new(TemplateNestOption {
+        directory: "templates".into(),
+        ..Default::default()
+    })?;
     let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",
@@ -24,7 +27,10 @@ fn render_simple_page() -> Result<(), TemplateNestError> {
 
 #[test]
 fn render_incomplete_page() -> Result<(), TemplateNestError> {
-    let nest = TemplateNest::new("templates")?;
+    let nest = TemplateNest::new(TemplateNestOption {
+        directory: "templates".into(),
+        ..Default::default()
+    })?;
     let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",
@@ -41,7 +47,10 @@ fn render_incomplete_page() -> Result<(), TemplateNestError> {
 
 #[test]
 fn render_complex_page() -> Result<(), TemplateNestError> {
-    let nest = TemplateNest::new("templates")?;
+    let nest = TemplateNest::new(TemplateNestOption {
+        directory: "templates".into(),
+        ..Default::default()
+    })?;
     let page = json!({
         "TEMPLATE": "10-complex-page",
         "title": "Complex Page",
@@ -95,7 +104,10 @@ fn render_complex_page() -> Result<(), TemplateNestError> {
 
 #[test]
 fn render_array_of_template_hash() -> Result<(), TemplateNestError> {
-    let nest = TemplateNest::new("templates")?;
+    let nest = TemplateNest::new(TemplateNestOption {
+        directory: "templates".into(),
+        ..Default::default()
+    })?;
     let page = json!([
         {
             "TEMPLATE": "01-simple-component",

@@ -1,17 +1,18 @@
 use serde_json::json;
 use std::collections::HashMap;
-use template_nest::{TemplateNest, TemplateNestError};
+use template_nest::{TemplateNest, TemplateNestError, TemplateNestOption};
 
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 
 #[test]
 fn render_with_defaults() -> Result<(), TemplateNestError> {
-    let nest = TemplateNest {
+    let nest = TemplateNest::new(TemplateNestOption {
         directory: "templates".into(),
         defaults: HashMap::from([("variable".to_string(), json!("Simple Variable"))]),
         ..Default::default()
-    };
+    })?;
+
     let page = json!({
         "TEMPLATE": "00-simple-page",
         "simple_component":  {

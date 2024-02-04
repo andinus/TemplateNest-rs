@@ -1,16 +1,18 @@
 use serde_json::json;
-use template_nest::{TemplateNest, TemplateNestError};
+use template_nest::{TemplateNest, TemplateNestError, TemplateNestOption};
 
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 
 #[test]
 fn render_simple_page_with_fixed_indent() -> Result<(), TemplateNestError> {
-    let nest = TemplateNest {
+    let nest = TemplateNest::new(TemplateNestOption {
         directory: "templates".into(),
         fixed_indent: true,
         ..Default::default()
-    };
+    })
+    .unwrap();
+
     let page = json!({
         "TEMPLATE": "00-simple-page",
         "variable": "Simple Variable",
@@ -28,11 +30,13 @@ fn render_simple_page_with_fixed_indent() -> Result<(), TemplateNestError> {
 
 #[test]
 fn render_complex_page_with_fixed_indent() -> Result<(), TemplateNestError> {
-    let nest = TemplateNest {
+    let nest = TemplateNest::new(TemplateNestOption {
         directory: "templates".into(),
         fixed_indent: true,
         ..Default::default()
-    };
+    })
+    .unwrap();
+
     let page = json!({
         "TEMPLATE": "10-complex-page",
         "title": "Complex Page",
