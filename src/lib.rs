@@ -243,8 +243,14 @@ impl TemplateNest {
             // newline character.
             let indent_level = match self.fixed_indent {
                 true => {
-                    let newline_position = &contents[..start_position].rfind('\n').unwrap_or(0);
-                    start_position - newline_position - 1
+                    // If we do not encounter a newline then that means this
+                    // variable is on the first line, we take the start_position
+                    // as the indent_level.
+                    let newline_position = &contents[..start_position].rfind('\n');
+                    match newline_position {
+                        Some(position) => start_position - position - 1,
+                        None => start_position
+                    }
                 }
                 false => 0,
             };
