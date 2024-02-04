@@ -255,7 +255,7 @@ impl TemplateNest {
             ));
         }
 
-        let contents = match fs::read_to_string(&template_file) {
+        let contents = match fs::read_to_string(template_file) {
             Ok(file_contents) => file_contents,
             Err(err) => {
                 return Err(TemplateNestError::TemplateFileReadError(err));
@@ -376,12 +376,12 @@ impl TemplateNest {
                         let last_modified = t_file.metadata().unwrap().modified().unwrap();
 
                         if last_modified > index.last_modified {
-                            Cow::Owned(Self::index(&self.option, &t_file.as_path())?)
+                            Cow::Owned(Self::index(&self.option, t_file.as_path())?)
                         } else {
                             Cow::Borrowed(index)
                         }
                     }
-                    None => Cow::Owned(Self::index(&self.option, &t_file.as_path())?),
+                    None => Cow::Owned(Self::index(&self.option, t_file.as_path())?),
                 };
 
                 if self.option.die_on_bad_params {
